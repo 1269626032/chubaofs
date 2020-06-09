@@ -17,8 +17,10 @@ package metanode
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/chubaofs/chubaofs/proto"
+	"io"
 	"sync"
+
+	"github.com/chubaofs/chubaofs/proto"
 )
 
 var (
@@ -147,6 +149,24 @@ func (e *ExtentsTree) MarshalBinary() (data []byte, err error) {
 		return
 	}
 	data = buf.Bytes()
+	return
+}
+
+func (e *ExtentsTree) WriteTo(writer io.Writer) (err error) {
+	stepFunc := func(item BtreeItem) bool {
+		if item == nil {
+			return false
+		}
+		ext := item.(*proto.ExtentKey)
+		if err = ext.WriteTo(writer); err != nil {
+			return false
+		}
+		return true
+	}
+	e.Ascend(stepFunc)
+	if err != nil {
+		return
+	}
 	return
 }
 
